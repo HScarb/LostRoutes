@@ -5,6 +5,7 @@ Thumbs.db
 frameworks/
 runtime/
 tools/
+simulator/
 
 # Ignore files built by Cocos Code IDE 
 .settings
