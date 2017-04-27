@@ -67,7 +67,6 @@ function LoadingScene:createLayer()
     local action = cc.Animate:create(animation)
     sprite:runAction(cc.RepeatForever:create(action))
     --------------------动画结束------------------
-    --[[
     local function loadingTextureCallBack(texture)
 
         frameCache:addSpriteFrames(texture_plist)
@@ -87,7 +86,7 @@ function LoadingScene:createLayer()
     end
 
     textureCache:addImageAsync(texture_res,loadingTextureCallBack)
-    --]]
+
     return layer
 end
 
