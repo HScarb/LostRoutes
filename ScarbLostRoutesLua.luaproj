@@ -107,10 +107,12 @@
     <Compile Include="src\cocos\ui\experimentalUIConstants.lua" />
     <Compile Include="src\cocos\ui\GuiConstants.lua" />
     <Compile Include="src\config.lua" />
+    <Compile Include="src\LoadingScene.lua" />
     <Compile Include="src\main.lua" />
     <Compile Include="src\packages\mvc\AppBase.lua" />
     <Compile Include="src\packages\mvc\init.lua" />
     <Compile Include="src\packages\mvc\ViewBase.lua" />
+    <Compile Include="src\SystemConst.lua" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.Common.targets" />
 </Project>
