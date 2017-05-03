@@ -12,7 +12,6 @@ simulator/
 .metadata/
 .buildpath
 .project
-config.json
 .cocos-project.json
 
 # Ignore my files
