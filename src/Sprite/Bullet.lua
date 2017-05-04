@@ -42,18 +42,17 @@ function Bullet:shootBulletFromFighter(fighter)
     self:setPosition(cc.p(fighterPosX, fighterPosY + fighter:getContentSize().height / 2))
     self:setVisible(true)
 
-    -- 游戏调度
+    -- update
     local function update(delta)
         
         local x, y = self:getPosition()
-        self:setPosition(cc.p(x + self.velocity.x *delta,  y + self.velocity.y *delta))
-        x,y = self:getPosition()
+        self:setPosition(cc.p(x + self.velocity.x * delta, y + self.velocity.y * delta))
+        x, y = self:getPosition()
 
         if y > size.height then
             self:setVisible(false)
             self:unscheduleUpdate()
         end
-
     end
     self:scheduleUpdateWithPriorityLua(update, 0)
 

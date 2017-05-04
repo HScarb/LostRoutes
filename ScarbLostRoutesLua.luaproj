@@ -117,6 +117,7 @@
     <Compile Include="src\packages\mvc\init.lua" />
     <Compile Include="src\packages\mvc\ViewBase.lua" />
     <Compile Include="src\SettingScene.lua" />
+    <Compile Include="src\Sprite\Bullet.lua" />
     <Compile Include="src\Sprite\Enemy.lua" />
     <Compile Include="src\Sprite\Fighter.lua" />
     <Compile Include="src\SystemConst.lua" />

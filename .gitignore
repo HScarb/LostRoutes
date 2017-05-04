@@ -19,3 +19,21 @@ cocosstudio/
 *.cfg
 *.udf
 *.ccs
+
+# DebugFile
+OpenAL32.dll
+ScarbLostRoutes.exe
+ScarbLostRoutes.ilk
+ScarbLostRoutes.pdb
+glew32.dll
+iconv.dll
+libcocos2d.dll
+libcurl.dll
+libmpg123.dll
+libogg.dll
+libtiff.dll
+libvorbis.dll
+libvorbisfile.dll
+lua51.dll
+sqlite3.dll
+zlib1.dll
