@@ -78,7 +78,7 @@ function GamePlayScene:createInitBGLayer()
     bgLayer:addChild(sprite1, 0, GameSceneNodeTag.BatchBackground)
 
     local ac1 = cc.MoveBy:create(20, cc.p(500, 600))
-    local ac2 = ac1.reverse()
+    local ac2 = ac1:reverse()
     local as1 = cc.Sequence:create(ac1, ac2)
     sprite1:runAction(cc.RepeatForever:create(cc.EaseSineInOut:create(as1)))
 
@@ -90,7 +90,7 @@ function GamePlayScene:createInitBGLayer()
     local ac3 = cc.MoveBy:create(10, cc.p(-500, 600))
     local ac4 = ac3:reverse()
     local as2 = cc.Sequence:create(ac3, ac4)
-    sprite2:runAtion(cc.RepeatForever:create(cc.EaseExponentialInOut:create(as2)))
+    sprite2:runAction(cc.RepeatForever:create(cc.EaseExponentialInOut:create(as2)))
 
     return bgLayer
 end
@@ -124,9 +124,45 @@ function GamePlayScene:createLayer()
         if nil ~= fighter and fighter:isVisible() then
             local bullet = Bullet.create("gameplay.bullet.png")
             mainLayer:addChild(bullet, 0, GameSceneNodeTag.Bullet)
+            bullet:shootBulletFromFighter(fighter)
         end
     end
-    -- ...
+    -- 碰撞事件回调函数
+    local function onContactBegin(contact)
+        local spriteA = contact:getShapeA():getBody():getNode()
+        local spriteB = contact:getShapeB():getBody():getNode()
+
+        local enemy1 = nil
+        ---------------------------- 检测 飞机与敌人的接触 start----------------------------------
+        ---------------------------- 检测 飞机与敌人的接触 end------------------------------------
+
+        -------------------------- 检测 炮弹与敌人的接触 start--------------------------------
+        local enemy2 = nil
+        if spriteA:getTag() == GameSceneNodeTag.Bullet and spriteB:getTag() == GameSceneNodeTag.Enemy then
+            -- 不可见的炮弹不发生接触
+            if spriteA:isVisible() == false then
+                return false
+            end
+            -- 使炮弹消失
+            spriteA:setVisible(false)
+            enemy2 = spriteB
+        end
+        if spriteB:getTag() == GameSceneNodeTag.Bullet and spriteA:getTag() == GameSceneNodeTag.Enemy then
+            -- 不可见的炮弹不发生接触
+            if spriteB:isVisible() == false then
+                return false
+            end
+            -- 使炮弹消失
+            spriteB:setVisible(false)
+            enemy2 = spriteA
+        end
+
+        if nil ~= enemy2 then   -- 发生碰撞
+            self:handleBulletCollidingWithEnemy(enemy2)
+        end
+        -------------------------- 检测 炮弹与敌人的接触 end----------------------------------
+        return false
+    end
 
     -- 触摸事件回调函数
     local function touchBegan(touch, event)
@@ -222,11 +258,27 @@ function GamePlayScene:createLayer()
     -- EVENT_TOUCH_MOVED 事件回调函数
     touchFighterListener:registerScriptHandler(touchMoved, cc.Handler.EVENT_TOUCH_MOVED)
 
+    -- 创建一个接触事件监听器
+    contactListener = cc.EventListenerPhysicsContact:create()
+    contactListener:registerScriptHandler(onContactBegin, cc.Handler.EVENT_PHYSICS_CONTACT_BEGIN)
+
     local eventDispatcher = cc.Director:getInstance():getEventDispatcher()
     -- 添加监听器
     eventDispatcher:addEventListenerWithSceneGraphPriority(touchFighterListener, fighter)
+    eventDispatcher:addEventListenerWithSceneGraphPriority(contactListener, mainLayer)
     
-    -- ...
+    -- 初始化暂停按钮
+    local pauseSprite = cc.Sprite:createWithSpriteFrameName("button.pause.png")
+    local pauseMenuItem = cc.MenuItemSprite:create(pauseSprite, pauseSprite)
+    pauseMenuItem:registerScriptTapHandler(menuPauseCallback)
+
+    local pauseMenu = cc.Menu:create(pauseMenuItem)
+    pauseMenu:setPosition(cc.p(30, size.height - 28))
+
+    mainLayer:addChild(pauseMenu, 300, 999)
+
+    -- 每0.2s调用shootBullet函数发射炮弹
+    schedulerId = scheduler:scheduleScriptFunc(shootBullet, 0.2, false)
 
     -- 分数
     score = 0
@@ -244,11 +296,122 @@ end
 -- 处理玩家与敌人的接触检测
 function GamePlayScene:handleFighterCollidingWithEnemy()
     
+    self:removeChildByTag(GameSceneNodeTag.ExplosionParticleSystem)
+
+    local explosion = cc.ParticleSystemQuad:create("particle/explosion.plist")
+    explosion:setPosition(fighter:getPosition())
+    self:addChild(explosion, 2, GameSceneNodeTag.ExplosionParticleSystem)
+    if defaults:getBoolForKey(SOUND_KEY) then
+        AudioEngine.playEffect(sound_2)         -- 爆炸音效
+    end
+
+    -- 设置敌人消失
+    enemy:setVisible(false)
+    enemy:spawn()
+
+    -- 设置玩家消失
+    fighter.hitPoints = fighter.hitPoints  - 1
+    self:updateStatusBarFighter()
+    -- 游戏结束
+    if fighter.hitPoints <= 0 then  
+        cclog("GameOver")
+        local GameOverScene = require("GameOverScene")
+        local scene = GameOverScene.create(score)
+        local tsc = cc.TransitionFade:create(1.0, scene)
+        cc.Director:getInstance():pushScene(tsc)
+    else
+        fighter:setPosition(cc.p(size.widget / 2, 70))
+        local ac1 = cc.Show:create()
+        local ac2 = cc.FadeIn:create(1.0)
+        local seq = cc.Sequence:create(ac1, ac2)
+        fighter:runAction(seq)
+    end
+
 end
 
 --炮弹与敌人的接触检测
 function GamePlayScene:handleBulletCollidingWithEnemy(enemy)
     
+    enemy.hitPoints = enemy.hitPoints - 1
+
+    if enemy.hitPoints <= 0 then
+        -- 爆炸和音效
+        local node = mainLayer:getChildByTag(GameSceneNodeTag.ExplosionParticleSystem)
+        if nil ~= node then
+            self:removeChild(node)
+        end
+        local explosion = cc.ParticleSystemQuad:create("particle/explosion.plist")
+        explosion:setPosition(enemy:getPosition())
+		self:addChild(explosion, 2, GameSceneNodeTag.ExplosionParticleSystem)
+		if defaults:getBoolForKey(SOUND_KEY) then
+			AudioEngine.playEffect(sound_2)			-- 播放爆炸音效
+		end
+		
+		if enemy.enemyType == EnemyTypes.Enemy_Stone then
+			score = EnemyScores.Enemy_Stone + score
+			scorePlaceholder = EnemyScores.Enemy_Stone + scorePlaceholder
+		elseif enemy.enemyType == EnemyTypes.Enemy_1 then
+			score = EnemyScores.Enemy_1 + score
+			scorePlaceholder = EnemyScores.Enemy_1 + scorePlaceholder
+		elseif enemy.enemyType == EnemyTypes.Enemy_2 then
+			score = EnemyScores.Enemy_2 + score
+			scorePlaceholder = EnemyScores.Enemy_2 + scorePlaceholder
+		else
+			score = EnemyScores.Enemy_Planet + score
+			scorePlaceholder = EnemyScores.Enemy_Planet + scorePlaceholder
+		end
+		
+		-- 每次获得1000分数，生命值加一，scorePlaceholder恢复0
+		if scorePlaceholder >= 1000 then
+			fighter.hitPoints = fighter.hitPoints + 1
+			self:updateStatusBarFighter()
+			scorePlaceholder = scorePlaceholder - 1000
+		end
+		
+		self:updateStatusBarScore()
+		-- 设置敌人消失
+		enemy:setVisible(false)
+		enemy:spawn()
+    end
+end
+
+-- 在状态栏中显示得分
+function GamePlayScene:updateStatusBarScore()
+	mainLayer:removeChildByTag(GameSceneNodeTag.StatusBarScore)
+	
+	if score < 0 then
+		score = 0
+	end
+	
+	local strScore = string.format("%d", score)
+	local lblScore =cc.Label:createWithTTF(strScore, "fonts/hanyi.ttf", 18)
+	
+	lblScore:setPosition(cc.p(size.width / 2, size.height - 28))
+	mainLayer:addChild(lblScore, 20, GameSceneNodeTag.StatusBarScore)
+end
+
+-- 在状态栏中设置玩家的生命值
+function GamePlayScene:updateStatusBarFighter()
+	
+	-- 先移除上次的精灵
+	mainLayer:removeChildByTag(GameSceneNodeTag.StatusBarFighterNode)
+	
+	local fg = cc.Sprite:createWithSpriteFrameName("gameplay.life.png")
+	fg:setPosition(cc.p(size.width - 60, size.height - 28))
+	mainLayer:addChild(fg, 20, GameSceneNodeTag.StatusBarFighterNode)
+	
+	-- 添加生命值 * 5 --
+	mainLayer:removeChildByTag(GameSceneNodeTag.StatusBarLifeNode)
+	
+	if fighter.hitPoints < 0 then
+		fighter.hitPoints = 0
+	end
+	
+	local life = string.format("x %d", fighter.hitPoints)
+	local lblLife = cc.Label:createWithTTF(life, "fonts/hanyi.ttf", 18)
+	local fgX, fgY = fg:getPosition()
+	lblLife:setPosition(cc.p(fgX + 30, fgY))
+	mainLayer:addChild(lblLife, 20, GameSceneNodeTag.StatusBarLifeNode)
 end
 
 function GamePlayScene:onEnter()

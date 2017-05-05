@@ -102,6 +102,15 @@ function Enemy:ctor(enemyType)
 
     -- 开始调度
     self:scheduleUpdateWithPriorityLua(update, 0)
+
+    local function onNodeEvent(tag)
+        if tag == "exit" then
+            -- 停止游戏调度
+            self:unscheduleUpdate()
+        end
+    end
+    self:registerScriptHandler(onNodeEvent)
+
 end
 
 function Enemy:spawn()
@@ -110,7 +119,7 @@ function Enemy:spawn()
     local rand = math.random()
     local xPos = math.random() * (size.width - self:getContentSize().width) + self:getContentSize().width / 2
 
-    self:setPosition(cc.p(xPos, yPox))
+    self:setPosition(cc.p(xPos, yPos))
     self:setAnchorPoint(cc.p(0.5, 0.5))
 
     self.hitPoints = self.initialHitPoints
