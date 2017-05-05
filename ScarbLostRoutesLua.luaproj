@@ -108,6 +108,7 @@
     <Compile Include="src\cocos\ui\experimentalUIConstants.lua" />
     <Compile Include="src\cocos\ui\GuiConstants.lua" />
     <Compile Include="src\config.lua" />
+    <Compile Include="src\GameOverScene.lua" />
     <Compile Include="src\GamePlayScene.lua" />
     <Compile Include="src\HelpScene.lua" />
     <Compile Include="src\HomeScene.lua" />
